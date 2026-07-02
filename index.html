@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Beach Volleyball Match Tracker</title>
+    <style>
+        :root {
+            --bg: #f5f3ef;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --subtext: #6b6b6b;
+            --border: #e0dcd5;
+            --accent: #d4a853;
+            --accent-dark: #b8913a;
+            --danger: #c0392b;
+            --danger-light: #fce4e4;
+            --success: #27ae60;
+            --success-light: #e6f7ee;
+            --warning: #f39c12;
+            --warning-light: #fef5e7;
+            --sand: #f2ead9;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+        /* Header */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        .header h1 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        .header .match-indicator {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+            background: #fdf8f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 52px;
+            z-index: 99;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--subtext);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--subtext);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* Form elements */
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--subtext);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #fafaf8;
+            color: var(--text);
+            appearance: none;
+            -webkit-appearance: none;
+            margin-bottom: 10px;
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%236b6b6b'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212,168,83,0.15); }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+        .btn-primary:hover { background: var(--accent-dark); }
+        .btn-outline {
+            background: white;
+            color: var(--accent);
+            border: 1.5px solid var(--accent);
+        }
+        .btn-outline:hover { background: #fdf8f0; }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 6px; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-block { width: 100%; }
+
+        /* Rally log */
+        .rally-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .rally-row:last-child { border-bottom: none; }
+        .rally-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-kill { background: var(--success-light); color: var(--success); }
+        .badge-error { background: var(--danger-light); color: var(--danger); }
+        .badge-block { background: var(--warning-light); color: var(--warning); }
+        .badge-dug { background: #e8f0fe; color: #1a73e8; }
+        .badge-neutral { background: #f0f0f0; color: #555; }
+        .rally-info { flex: 1; min-width: 120px; }
+        .rally-attack { color: var(--subtext); font-size: 0.75rem; }
+
+        /* Stats grid */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .stat-card {
+            background: #fafaf8;
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+        .stat-label { font-size: 0.68rem; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+
+        /* Pivot-like mini tables */
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-top: 8px; }
+        .mini-table th, .mini-table td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border); }
+        .mini-table th { color: var(--subtext); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+        .mini-table .highlight { background: var(--danger-light); border-radius: 4px; }
+
+        /* Match selector */
+        .match-chip {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 3px;
+            border: 1px solid var(--border);
+            background: white;
+            transition: all 0.15s;
+        }
+        .match-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--subtext);
+        }
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+        /* Undo button */
+        .undo-area { text-align: center; margin-top: 8px; }
+
+        @media (max-width: 400px) {
+            .form-row-3 { grid-template-columns: 1fr 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🏐 VB Tracker</h1>
+        <span class="match-indicator" id="currentMatchDisplay">No match set</span>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('log')">📝 Log</button>
+        <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
+        <button class="tab" onclick="switchTab('history')">📋 History</button>
+        <button class="tab" onclick="switchTab('matches')">⚙️ Setup</button>
+    </div>
+
+    <div class="container">
+
+        <!-- LOG TAB -->
+        <div id="tab-log">
+            <!-- Match Setup Card (shows when no match active) -->
+            <div class="card" id="setupCard">
+                <div class="card-title">Start a Match</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                    <div>
+                        <label>Our Team</label>
+                        <input type="text" id="teamName" placeholder="Smith/Jones" value="A/B">
+                    </div>
+                    <div>
+                        <label>Opponent</label>
+                        <input type="text" id="opponentName" placeholder="Opponents" value="Opp">
+                    </div>
+                    <div>
+                        <label>Date</label>
+                        <input type="date" id="matchDate" value="">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="startMatch()" style="margin-top:10px;">Start Match</button>
+            </div>
+
+            <!-- Active Logging Card (hidden until match starts) -->
+            <div class="card" id="loggingCard" style="display:none;">
+                <div class="card-title">Log Rally</div>
+                <div class="form-row-3">
+                    <div>
+                        <label>Server</label>
+                        <select id="server"><option value="A">A</option><option value="B">B</option><option value="Opp">Opp</option></select>
+                    </div>
+                    <div>
+                        <label>Rec Quality</label>
+                        <select id="recQuality"><option value="">N/A</option><option value="0">0 - Ace/Over</option><option value="1">1 - Poor</option><option value="2">2 - Medium</option><option value="3">3 - Perfect</option></select>
+                    </div>
+                    <div>
+                        <label>Point Won By</label>
+                        <select id="pointWonBy"><option value="A">A</option><option value="B">B</option><option value="Opp">Opp</option></select>
+                    </div>
+                </div>
+                <div class="form-row-3">
+                    <div>
+                        <label>Attacker</label>
+                        <select id="attacker"><option value="A">A</option><option value="B">B</option><option value="Opp">Opp</option></select>
+                    </div>
+                    <div>
+                        <label>From Zone</label>
+                        <select id="fromZone">
+                            <option value="1L">1L - Net Left</option><option value="1M">1M - Net Mid</option><option value="1R">1R - Net Right</option>
+                            <option value="2L">2L - 4ft Left</option><option value="2M">2M - 4ft Mid</option><option value="2R">2R - 4ft Right</option>
+                            <option value="3L">3L - 10ft Left</option><option value="3M">3M - 10ft Mid</option><option value="3R">3R - 10ft Right</option>
+                            <option value="4L">4L - Back Left</option><option value="4M">4M - Back Mid</option><option value="4R">4R - Back Right</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Shot Type</label>
+                        <select id="shotType"><option value="H">H - Hard</option><option value="S">S - Soft/Finesse</option></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div>
+                        <label>Direction</label>
+                        <select id="direction">
+                            <option value="L">L - Line</option><option value="LC">LC - Line-Cut</option><option value="C">C - Cross</option><option value="CS">CS - Sharp Cross</option><option value="JB">JB - Jumbo Deep</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Outcome</label>
+                        <select id="outcome">
+                            <option value="KNT">KNT - Kill No Touch</option><option value="KT">KT - Kill Touch</option><option value="BLK">BLK - Blocked</option><option value="BLK-C">BLK-C - Blocked Covered</option><option value="OUT">OUT - Out</option><option value="NET">NET - Into Net</option><option value="DUG">DUG - Dug</option><option value="D-ERR">D-ERR - Dig Error</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label>Quick Note (optional)</label>
+                    <input type="text" id="note" placeholder="e.g., great transition, wind caught it...">
+                </div>
+                <button class="btn btn-primary" onclick="logRally()" style="margin-top:8px;">Log Rally</button>
+                <div class="undo-area">
+                    <button class="btn btn-outline btn-sm" onclick="undoLast()">↩ Undo Last</button>
+                </div>
+            </div>
+
+            <!-- Recent Rally Log -->
+            <div class="card" id="recentLogCard" style="display:none;">
+                <div class="card-title">Recent Rallies <span style="font-weight:400;color:var(--subtext);" id="rallyCount"></span></div>
+                <div id="recentRallies"><div class="empty-state">No rallies logged yet</div></div>
+                <button class="btn btn-outline btn-block btn-sm" onclick="endMatch()" style="margin-top:10px;">🏁 End Match & Save</button>
+            </div>
+        </div>
+
+        <!-- STATS TAB -->
+        <div id="tab-stats" style="display:none;">
+            <div class="card">
+                <div class="card-title">Filter</div>
+                <div class="form-row-3">
+                    <div>
+                        <label>Player</label>
+                        <select id="filterPlayer" onchange="refreshStats()">
+                            <option value="All">All</option><option value="A">A</option><option value="B">B</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Shot Type</label>
+                        <select id="filterShotType" onchange="refreshStats()">
+                            <option value="All">All</option><option value="H">Hard</option><option value="S">Soft</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Direction</label>
+                        <select id="filterDirection" onchange="refreshStats()">
+                            <option value="All">All</option><option value="L">Line</option><option value="LC">Line-Cut</option><option value="C">Cross</option><option value="CS">Sharp Cross</option><option value="JB">Jumbo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Overview</div>
+                <div class="stats-grid" id="overviewStats"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Outcome by Direction</div>
+                <div id="directionBreakdown"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Outcome by Zone</div>
+                <div id="zoneBreakdown"></div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="tab-history" style="display:none;">
+            <div class="card">
+                <div class="card-title">Saved Matches</div>
+                <div id="matchList"></div>
+            </div>
+        </div>
+
+        <!-- SETUP TAB -->
+        <div id="tab-matches" style="display:none;">
+            <div class="card">
+                <div class="card-title">Manage Matches</div>
+                <p style="font-size:0.85rem;color:var(--subtext);margin-bottom:10px;">
+                    Start a new match or select an existing one to append rallies. Data syncs across your devices.
+                </p>
+                <div id="existingMatches" style="margin-bottom:10px;"></div>
+                <button class="btn btn-danger btn-sm" onclick="deleteAllData()" style="margin-top:8px;">🗑 Delete All Data</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, onSnapshot, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+        // ═══════════════════════════════════════
+        // PASTE YOUR FIREBASE CONFIG HERE
+        // ═══════════════════════════════════════
+        const firebaseConfig = {
+          apiKey: "AIzaSyBFoOPqHFVLbomcnsz4DbXHrKDZ6DOX0Es",
+          authDomain: "vb-tracker-484e1.firebaseapp.com",
+          projectId: "vb-tracker-484e1",
+          storageBucket: "vb-tracker-484e1.firebasestorage.app",
+          messagingSenderId: "1023894029824",
+          appId: "1:1023894029824:web:f70d6ed7acbabbddbafae5"
+        };
+        
+        // ═══════════════════════════════════════
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const ralliesCollection = collection(db, "rallies");
+        const matchesCollection = collection(db, "matches");
+
+        // Make accessible globally
+        window.db = db;
+        window.ralliesCollection = ralliesCollection;
+        window.matchesCollection = matchesCollection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.collection = collection;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.limit = limit;
+        window.onSnapshot = onSnapshot;
+        window.where = where;
+        window.serverTimestamp = serverTimestamp;
+    </script>
+
+    <script>
+        // ═══════════════════════════════════════
+        // GLOBAL STATE
+        // ═══════════════════════════════════════
+        let currentMatchId = null;
+        let currentMatchData = null;
+        let allRallies = [];
+        let unsyncedRallies = [];
+        let rallyCounter = 1;
+        let setNumber = 1;
+
+        // ═══════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('matchDate').value = new Date().toISOString().split('T')[0];
+            loadMatches();
+            checkForActiveMatch();
+        });
+
+        function checkForActiveMatch() {
+            const saved = localStorage.getItem('currentMatch');
+            if (saved) {
+                const data = JSON.parse(saved);
+                currentMatchId = data.id;
+                currentMatchData = data;
+                rallyCounter = data.rallyCounter || 1;
+                setNumber = data.setNumber || 1;
+                document.getElementById('currentMatchDisplay').textContent =
+                    `${data.teamName} vs ${data.opponentName}`;
+                document.getElementById('setupCard').style.display = 'none';
+                document.getElementById('loggingCard').style.display = 'block';
+                document.getElementById('recentLogCard').style.display = 'block';
+                loadRalliesForCurrentMatch();
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // MATCH MANAGEMENT
+        // ═══════════════════════════════════════
+        async function startMatch() {
+            const teamName = document.getElementById('teamName').value || 'A/B';
+            const opponentName = document.getElementById('opponentName').value || 'Opp';
+            const matchDate = document.getElementById('matchDate').value || new Date().toISOString().split('T')[0];
+
+            const matchData = {
+                teamName,
+                opponentName,
+                matchDate,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                const docRef = await window.addDoc(window.matchesCollection, matchData);
+                currentMatchId = docRef.id;
+                currentMatchData = { id: docRef.id, ...matchData, rallyCounter: 1, setNumber: 1 };
+                rallyCounter = 1;
+                setNumber = 1;
+                allRallies = [];
+
+                saveCurrentMatchToLocal();
+                document.getElementById('currentMatchDisplay').textContent = `${teamName} vs ${opponentName}`;
+                document.getElementById('setupCard').style.display = 'none';
+                document.getElementById('loggingCard').style.display = 'block';
+                document.getElementById('recentLogCard').style.display = 'block';
+                renderRecentRallies();
+                showToast('Match started! 🏐');
+            } catch (e) {
+                showToast('Error: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        function saveCurrentMatchToLocal() {
+            localStorage.setItem('currentMatch', JSON.stringify({
+                ...currentMatchData,
+                rallyCounter,
+                setNumber
+            }));
+        }
+
+        async function endMatch() {
+            if (!confirm('End this match and save all data?')) return;
+            currentMatchId = null;
+            currentMatchData = null;
+            allRallies = [];
+            rallyCounter = 1;
+            setNumber = 1;
+            localStorage.removeItem('currentMatch');
+            document.getElementById('currentMatchDisplay').textContent = 'No match set';
+            document.getElementById('setupCard').style.display = 'block';
+            document.getElementById('loggingCard').style.display = 'none';
+            document.getElementById('recentLogCard').style.display = 'none';
+            showToast('Match saved! ✅');
+            loadMatches();
+        }
+
+        // ═══════════════════════════════════════
+        // RALLY LOGGING
+        // ═══════════════════════════════════════
+        async function logRally() {
+            if (!currentMatchId) {
+                showToast('Start a match first!');
+                return;
+            }
+
+            const rally = {
+                matchId: currentMatchId,
+                set: setNumber,
+                rallyNumber: rallyCounter,
+                server: document.getElementById('server').value,
+                recQuality: document.getElementById('recQuality').value || null,
+                pointWonBy: document.getElementById('pointWonBy').value,
+                attacker: document.getElementById('attacker').value,
+                fromZone: document.getElementById('fromZone').value,
+                shotType: document.getElementById('shotType').value,
+                direction: document.getElementById('direction').value,
+                outcome: document.getElementById('outcome').value,
+                note: document.getElementById('note').value || '',
+                timestamp: new Date().toISOString()
+            };
+
+            // Determine point type automatically
+            rally.pointType = determinePointType(rally);
+
+            try {
+                const docRef = await window.addDoc(window.ralliesCollection, rally);
+                rally.id = docRef.id;
+                allRallies.push(rally);
+                rallyCounter++;
+                saveCurrentMatchToLocal();
+                renderRecentRallies();
+                clearLogForm();
+                showToast('Rally logged!');
+            } catch (e) {
+                // Offline fallback
+                rally.id = 'local-' + Date.now();
+                allRallies.push(rally);
+                unsyncedRallies.push(rally);
+                rallyCounter++;
+                saveCurrentMatchToLocal();
+                renderRecentRallies();
+                clearLogForm();
+                showToast('Rally saved locally 📱');
+            }
+        }
+
+        function determinePointType(rally) {
+            const pw = rally.pointWonBy;
+            const out = rally.outcome;
+
+            if (pw === 'Opp') {
+                if (out === 'OUT' || out === 'NET') return 'Opp Hit Err';
+                return 'Opp Point';
+            }
+
+            // Our point
+            if (out === 'KNT' || out === 'KT') return 'Kill';
+            if (out === 'BLK') return 'Block';
+            if (out === 'D-ERR') return 'Kill';
+            if (rally.recQuality === '0' && rally.server === rally.pointWonBy) return 'Ace';
+            return 'Point';
+        }
+
+        function clearLogForm() {
+            document.getElementById('note').value = '';
+            document.getElementById('server').value = 'A';
+            document.getElementById('recQuality').value = '';
+            document.getElementById('pointWonBy').value = 'A';
+            document.getElementById('attacker').value = 'A';
+            document.getElementById('fromZone').value = '2R';
+            document.getElementById('shotType').value = 'H';
+            document.getElementById('direction').value = 'C';
+            document.getElementById('outcome').value = 'KNT';
+        }
+
+        async function undoLast() {
+            if (allRallies.length === 0) return;
+            const last = allRallies.pop();
+            rallyCounter--;
+
+            if (last.id && !last.id.startsWith('local-')) {
+                try {
+                    await window.deleteDoc(window.doc(window.db, 'rallies', last.id));
+                } catch (e) { console.error('Could not delete from server:', e); }
+            }
+
+            saveCurrentMatchToLocal();
+            renderRecentRallies();
+            showToast('Last rally undone ↩');
+        }
+
+        // ═══════════════════════════════════════
+        // RENDER RECENT RALLIES
+        // ═══════════════════════════════════════
+        function renderRecentRallies() {
+            const container = document.getElementById('recentRallies');
+            const countEl = document.getElementById('rallyCount');
+            countEl.textContent = `(${allRallies.length} rallies)`;
+
+            if (allRallies.length === 0) {
+                container.innerHTML = '<div class="empty-state">No rallies logged yet</div>';
+                return;
+            }
+
+            const recent = allRallies.slice(-20).reverse();
+            container.innerHTML = recent.map(r => {
+                const outcomeClass = getOutcomeClass(r.outcome);
+                return `
+                    <div class="rally-row">
+                        <span style="font-weight:600;min-width:28px;">#${r.rallyNumber}</span>
+                        <span class="rally-badge ${outcomeClass}">${r.outcome}</span>
+                        <span class="rally-info">
+                            <strong>${r.attacker}</strong> from ${r.fromZone} · ${r.shotType} · ${r.direction}
+                        </span>
+                        <span style="font-size:0.72rem;color:var(--subtext);">→ ${r.pointWonBy}</span>
+                        ${r.note ? `<span class="rally-attack" style="width:100%;">📝 ${r.note}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getOutcomeClass(outcome) {
+            if (outcome === 'KNT' || outcome === 'KT') return 'badge-kill';
+            if (outcome === 'OUT' || outcome === 'NET') return 'badge-error';
+            if (outcome === 'BLK') return 'badge-block';
+            if (outcome === 'DUG' || outcome === 'BLK-C') return 'badge-dug';
+            return 'badge-neutral';
+        }
+
+        // ═══════════════════════════════════════
+        // STATS
+        // ═══════════════════════════════════════
+        function refreshStats() {
+            const filterPlayer = document.getElementById('filterPlayer')?.value || 'All';
+            const filterShotType = document.getElementById('filterShotType')?.value || 'All';
+            const filterDirection = document.getElementById('filterDirection')?.value || 'All';
+
+            let rallies = [...allRallies];
+            if (filterPlayer !== 'All') rallies = rallies.filter(r => r.attacker === filterPlayer);
+            if (filterShotType !== 'All') rallies = rallies.filter(r => r.shotType === filterShotType);
+            if (filterDirection !== 'All') rallies = rallies.filter(r => r.direction === filterDirection);
+
+            const total = rallies.length;
+            const kills = rallies.filter(r => r.outcome === 'KNT' || r.outcome === 'KT').length;
+            const errors = rallies.filter(r => r.outcome === 'OUT' || r.outcome === 'NET').length;
+            const blocks = rallies.filter(r => r.outcome === 'BLK').length;
+            const dug = rallies.filter(r => r.outcome === 'DUG').length;
+            const killPct = total > 0 ? ((kills / total) * 100).toFixed(1) : '0.0';
+            const errorPct = total > 0 ? ((errors / total) * 100).toFixed(1) : '0.0';
+            const blockPct = total > 0 ? ((blocks / total) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('overviewStats').innerHTML = `
+                <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Attacks</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--success);">${kills} (${killPct}%)</div><div class="stat-label">Kills</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--danger);">${errors} (${errorPct}%)</div><div class="stat-label">Errors</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--warning);">${blocks} (${blockPct}%)</div><div class="stat-label">Blocked</div></div>
+                <div class="stat-card"><div class="stat-value">${dug}</div><div class="stat-label">Dug</div></div>
+                <div class="stat-card"><div class="stat-value">${killPct}%</div><div class="stat-label">Kill %</div></div>
+            `;
+
+            // Direction breakdown
+            const directions = ['L', 'LC', 'C', 'CS', 'JB'];
+            const outcomes = ['KNT', 'KT', 'BLK', 'OUT', 'NET', 'DUG'];
+            let dirHTML = '<table class="mini-table"><tr><th>Dir</th>';
+            outcomes.forEach(o => dirHTML += `<th>${o}</th>`);
+            dirHTML += '<th>Total</th></tr>';
+
+            directions.forEach(dir => {
+                const dirRallies = rallies.filter(r => r.direction === dir);
+                if (dirRallies.length === 0) return;
+                dirHTML += `<tr><td><strong>${dir}</strong></td>`;
+                outcomes.forEach(o => {
+                    const count = dirRallies.filter(r => r.outcome === o).length;
+                    const pct = dirRallies.length > 0 ? ((count / dirRallies.length) * 100).toFixed(0) : 0;
+                    const cls = (o === 'OUT' || o === 'NET' || o === 'BLK') && count > 0 && pct > 30 ? 'highlight' : '';
+                    dirHTML += `<td class="${cls}">${count}${count > 0 ? ' ('+pct+'%)' : ''}</td>`;
+                });
+                dirHTML += `<td><strong>${dirRallies.length}</strong></td></tr>`;
+            });
+            dirHTML += '</table>';
+            document.getElementById('directionBreakdown').innerHTML = dirHTML || '<div class="empty-state">No data for this filter</div>';
+
+            // Zone breakdown
+            const zones = ['1L','1M','1R','2L','2M','2R','3L','3M','3R','4L','4M','4R'];
+            let zoneHTML = '<table class="mini-table"><tr><th>Zone</th>';
+            outcomes.forEach(o => zoneHTML += `<th>${o}</th>`);
+            zoneHTML += '<th>Total</th></tr>';
+
+            zones.forEach(zone => {
+                const zoneRallies = rallies.filter(r => r.fromZone === zone);
+                if (zoneRallies.length === 0) return;
+                zoneHTML += `<tr><td><strong>${zone}</strong></td>`;
+                outcomes.forEach(o => {
+                    const count = zoneRallies.filter(r => r.outcome === o).length;
+                    const pct = zoneRallies.length > 0 ? ((count / zoneRallies.length) * 100).toFixed(0) : 0;
+                    const cls = (o === 'OUT' || o === 'NET' || o === 'BLK') && count > 0 && pct > 30 ? 'highlight' : '';
+                    zoneHTML += `<td class="${cls}">${count}${count > 0 ? ' ('+pct+'%)' : ''}</td>`;
+                });
+                zoneHTML += `<td><strong>${zoneRallies.length}</strong></td></tr>`;
+            });
+            zoneHTML += '</table>';
+            document.getElementById('zoneBreakdown').innerHTML = zoneHTML || '<div class="empty-state">No data for this filter</div>';
+        }
+
+        // ═══════════════════════════════════════
+        // HISTORY & MATCHES
+        // ═══════════════════════════════════════
+        async function loadMatches() {
+            try {
+                const querySnapshot = await window.getDocs(window.query(
+                    window.matchesCollection,
+                    window.orderBy('createdAt', 'desc')
+                ));
+                const matches = [];
+                querySnapshot.forEach(doc => matches.push({ id: doc.id, ...doc.data() }));
+
+                renderMatchList(matches);
+                renderExistingMatches(matches);
+            } catch (e) {
+                console.error('Error loading matches:', e);
+                document.getElementById('matchList').innerHTML =
+                    '<div class="empty-state">⚠️ Could not load matches. Check your connection.</div>';
+            }
+        }
+
+        function renderMatchList(matches) {
+            const container = document.getElementById('matchList');
+            if (matches.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">📋</div>No saved matches yet</div>';
+                return;
+            }
+
+            container.innerHTML = matches.map(m => `
+                <div class="card" style="margin:8px 0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <strong>${m.teamName}</strong> vs ${m.opponentName}<br>
+                            <span style="font-size:0.78rem;color:var(--subtext);">${m.matchDate}</span>
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="viewMatchStats('${m.id}')">View Stats</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderExistingMatches(matches) {
+            const container = document.getElementById('existingMatches');
+            if (matches.length === 0) {
+                container.innerHTML = '<p style="font-size:0.85rem;color:var(--subtext);">No past matches found.</p>';
+                return;
+            }
+            container.innerHTML = '<p style="font-size:0.8rem;color:var(--subtext);margin-bottom:6px;">Click to resume a match:</p>' +
+                matches.slice(0, 10).map(m => `
+                    <span class="match-chip" onclick="resumeMatch('${m.id}')">
+                        ${m.teamName} vs ${m.opponentName} (${m.matchDate})
+                    </span>
+                `).join('');
+        }
+
+        async function resumeMatch(matchId) {
+            try {
+                const docSnap = await window.getDocs(window.query(
+                    window.matchesCollection,
+                    window.where('__name__', '==', matchId)
+                ));
+                // Actually we need getDoc — workaround
+                const allMatches = await window.getDocs(window.collection(window.db, 'matches'));
+                let matchData = null;
+                allMatches.forEach(doc => {
+                    if (doc.id === matchId) matchData = { id: doc.id, ...doc.data() };
+                });
+
+                if (!matchData) { showToast('Match not found'); return; }
+
+                currentMatchId = matchId;
+                currentMatchData = { ...matchData, rallyCounter: rallyCounter, setNumber: setNumber };
+                document.getElementById('currentMatchDisplay').textContent =
+                    `${matchData.teamName} vs ${matchData.opponentName}`;
+                document.getElementById('setupCard').style.display = 'none';
+                document.getElementById('loggingCard').style.display = 'block';
+                document.getElementById('recentLogCard').style.display = 'block';
+                await loadRalliesForCurrentMatch();
+                saveCurrentMatchToLocal();
+                showToast('Resumed match! 🏐');
+                switchTab('log');
+            } catch (e) {
+                showToast('Error: ' + e.message);
+            }
+        }
+
+        async function loadRalliesForCurrentMatch() {
+            try {
+                const q = window.query(
+                    window.ralliesCollection,
+                    window.where('matchId', '==', currentMatchId),
+                    window.orderBy('timestamp', 'asc')
+                );
+                const querySnapshot = await window.getDocs(q);
+                allRallies = [];
+                querySnapshot.forEach(doc => allRallies.push({ id: doc.id, ...doc.data() }));
+                if (allRallies.length > 0) {
+                    rallyCounter = Math.max(...allRallies.map(r => r.rallyNumber || 0)) + 1;
+                }
+                saveCurrentMatchToLocal();
+                renderRecentRallies();
+            } catch (e) {
+                console.error('Error loading rallies:', e);
+            }
+        }
+
+        async function viewMatchStats(matchId) {
+            try {
+                const q = window.query(
+                    window.ralliesCollection,
+                    window.where('matchId', '==', matchId),
+                    window.orderBy('timestamp', 'asc')
+                );
+                const querySnapshot = await window.getDocs(q);
+                const rallies = [];
+                querySnapshot.forEach(doc => rallies.push({ id: doc.id, ...doc.data() }));
+
+                // Temporarily set these rallies for stats viewing
+                const savedRallies = allRallies;
+                allRallies = rallies;
+                switchTab('stats');
+                refreshStats();
+                showToast(`Viewing stats for match. ${rallies.length} rallies loaded.`);
+                // Restore after a delay
+                setTimeout(() => { allRallies = savedRallies; }, 5000);
+            } catch (e) {
+                showToast('Error loading match stats');
+            }
+        }
+
+        async function deleteAllData() {
+            if (!confirm('DELETE ALL DATA? This cannot be undone. Type "DELETE" to confirm.')) return;
+            const confirmInput = prompt('Type DELETE to confirm:');
+            if (confirmInput !== 'DELETE') return;
+
+            try {
+                const ralliesSnapshot = await window.getDocs(window.ralliesCollection);
+                for (const doc of ralliesSnapshot.docs) {
+                    await window.deleteDoc(window.doc(window.db, 'rallies', doc.id));
+                }
+                const matchesSnapshot = await window.getDocs(window.matchesCollection);
+                for (const doc of matchesSnapshot.docs) {
+                    await window.deleteDoc(window.doc(window.db, 'matches', doc.id));
+                }
+                allRallies = [];
+                rallyCounter = 1;
+                currentMatchId = null;
+                currentMatchData = null;
+                localStorage.removeItem('currentMatch');
+                document.getElementById('currentMatchDisplay').textContent = 'No match set';
+                document.getElementById('setupCard').style.display = 'block';
+                document.getElementById('loggingCard').style.display = 'none';
+                document.getElementById('recentLogCard').style.display = 'none';
+                loadMatches();
+                showToast('All data deleted');
+            } catch (e) {
+                showToast('Error: ' + e.message);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // UI HELPERS
+        // ═══════════════════════════════════════
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id^="tab-"]').forEach(d => d.style.display = 'none');
+
+            const tabMap = { log: 0, stats: 1, history: 2, matches: 3 };
+            document.querySelectorAll('.tab')[tabMap[tabName]].classList.add('active');
+            document.getElementById('tab-' + tabName).style.display = 'block';
+
+            if (tabName === 'stats') refreshStats();
+            if (tabName === 'history' || tabName === 'matches') loadMatches();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+    </script>
+
+</body>
+</html>
