@@ -138,6 +138,7 @@
             padding-right: 28px;
         }
         input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212,168,83,0.12); }
+        input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
         .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
@@ -197,6 +198,12 @@
         .continuation-banner .banner-text { font-weight: 600; font-size: 0.78rem; color: var(--info); }
         .continuation-banner .banner-detail { font-size: 0.68rem; color: var(--subtext); }
 
+        .serve-error-banner {
+            background: var(--warning-light);
+            border: 1px solid var(--warning);
+        }
+        .serve-error-banner .banner-text { color: var(--warning); }
+
         .rally-group {
             border: 1px solid var(--border);
             border-radius: var(--radius);
@@ -252,6 +259,7 @@
         .badge-block { background: var(--warning-light); color: var(--warning); }
         .badge-dug { background: var(--info-light); color: var(--info); }
         .badge-neutral { background: #f0f0f0; color: #555; }
+        .badge-serve-error { background: var(--warning-light); color: var(--warning); }
         .action-info { flex: 1; min-width: 80px; font-size: 0.72rem; line-height: 1.3; }
         .action-meta { font-size: 0.63rem; color: var(--subtext); }
         .set-detail { color: var(--accent); font-weight: 500; font-size: 0.63rem; }
@@ -408,14 +416,41 @@
                     </div>
                 </div>
 
+                <!-- SERVE ERROR TOGGLE -->
+                <div class="field-group serve-error-banner" id="serveErrorGroup">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="serveError" onchange="onServeErrorToggle()" style="width:18px;height:18px;cursor:pointer;">
+                        <label for="serveError" style="margin:0;cursor:pointer;color:var(--warning);font-size:0.75rem;">Serve Error (out/net — rally ends, no attack)</label>
+                    </div>
+                    <div id="serveErrorDetails" style="display:none;margin-top:6px;">
+                        <div class="form-row">
+                            <div>
+                                <label>Error Type</label>
+                                <select id="serveErrorType">
+                                    <option value="OUT">Serve Out</option>
+                                    <option value="NET">Serve Into Net</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Point To</label>
+                                <select id="serveErrorPointTo">
+                                    <option value="Opp">Opponent</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- RECEIVE -->
-                <div class="field-group">
+                <div class="field-group" id="receiveGroup">
                     <div class="field-group-label">Receive</div>
                     <div><label>Rec Quality</label><select id="recQuality"><option value="">N/A (ace or no receive)</option><option value="0">0 - Ace / Overpass</option><option value="1">1 - Poor</option><option value="2" selected>2 - Medium</option><option value="3">3 - Perfect</option></select></div>
                 </div>
 
                 <!-- SET -->
-                <div class="field-group">
+                <div class="field-group" id="setGroup">
                     <div class="field-group-label">Set</div>
                     <div class="form-row-3">
                         <div><label>Quality</label><select id="setQuality"><option value="2" selected>2 - Good</option><option value="1">1 - Bad</option><option value="3">3 - Perfect</option></select></div>
@@ -426,7 +461,7 @@
                 </div>
 
                 <!-- ATTACK -->
-                <div class="field-group">
+                <div class="field-group" id="attackGroup">
                     <div class="field-group-label">Attack</div>
                     <div class="form-row-3">
                         <div><label>Attacker</label><select id="attacker"><option value="A">A</option><option value="B">B</option><option value="Opp">Opp</option></select></div>
@@ -449,7 +484,7 @@
                 </div>
 
                 <!-- RESULT -->
-                <div class="form-row">
+                <div class="form-row" id="resultRow">
                     <div><label>Point Won By</label><select id="pointWonBy"><option value="A">A</option><option value="B">B</option><option value="Opp">Opp</option></select></div>
                     <div><label>Quick Note</label><input type="text" id="note" placeholder="Optional..."></div>
                 </div>
@@ -513,12 +548,12 @@
         // PASTE YOUR FIREBASE CONFIG HERE
         // ═══════════════════════════════════════
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+          apiKey: "AIzaSyBFoOPqHFVLbomcnsz4DbXHrKDZ6DOX0Es",
+          authDomain: "vb-tracker-484e1.firebaseapp.com",
+          projectId: "vb-tracker-484e1",
+          storageBucket: "vb-tracker-484e1.firebasestorage.app",
+          messagingSenderId: "1023894029824",
+          appId: "1:1023894029824:web:f70d6ed7acbabbddbafae5"
         };
         // ═══════════════════════════════════════
 
@@ -537,7 +572,7 @@
         window.where = where;
     </script>
 
-        <script>
+    <script>
         // ═══════════════════════════════════════
         // GLOBAL STATE
         // ═══════════════════════════════════════
@@ -579,7 +614,6 @@
             checkForActiveMatch();
             updateAllLabels();
             onOutcomeChange();
-            // Ensure correct initial tab state
             document.getElementById('loggingCard').style.display = 'none';
             document.getElementById('recentLogCard').style.display = 'none';
             document.getElementById('continuationBanner').style.display = 'none';
@@ -624,6 +658,7 @@
             document.getElementById('continuationBanner').style.display = 'none';
             document.getElementById('logCardTitle').textContent = 'Log Rally';
             document.getElementById('logButton').textContent = 'Log Action';
+            resetServeErrorToggle();
         }
 
         function showContinuationBanner() {
@@ -635,7 +670,7 @@
         }
 
         function updateAllLabels() {
-            const selectors = ['#attacker', '#server', '#pointWonBy', '#digBy'];
+            const selectors = ['#attacker', '#server', '#pointWonBy', '#digBy', '#serveErrorPointTo'];
             selectors.forEach(sel => {
                 const el = document.querySelector(sel);
                 if (!el) return;
@@ -646,16 +681,31 @@
             });
         }
 
-        function selectSet(s) {
-            setNumber = s;
-            selectSetUI(s);
-            saveCurrentMatchToLocal();
-        }
-
+        function selectSet(s) { setNumber = s; selectSetUI(s); saveCurrentMatchToLocal(); }
         function selectSetUI(s) {
             document.querySelectorAll('.set-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('setBtn' + s);
-            if (btn) btn.classList.add('active');
+            const btn = document.getElementById('setBtn' + s); if (btn) btn.classList.add('active');
+        }
+
+        // ═══════════════════ SERVE ERROR TOGGLE ═══════════════════
+        function onServeErrorToggle() {
+            const checked = document.getElementById('serveError').checked;
+            document.getElementById('serveErrorDetails').style.display = checked ? 'block' : 'none';
+            document.getElementById('receiveGroup').style.display = checked ? 'none' : 'block';
+            document.getElementById('setGroup').style.display = checked ? 'none' : 'block';
+            document.getElementById('attackGroup').style.display = checked ? 'none' : 'block';
+            document.getElementById('digDetails').style.display = 'none';
+            document.getElementById('resultRow').style.display = checked ? 'none' : 'block';
+        }
+
+        function resetServeErrorToggle() {
+            document.getElementById('serveError').checked = false;
+            document.getElementById('serveErrorDetails').style.display = 'none';
+            document.getElementById('receiveGroup').style.display = 'block';
+            document.getElementById('setGroup').style.display = 'block';
+            document.getElementById('attackGroup').style.display = 'block';
+            document.getElementById('digDetails').style.display = 'none';
+            document.getElementById('resultRow').style.display = 'block';
         }
 
         // ═══════════════════ MATCH MANAGEMENT ═══════════════════
@@ -669,10 +719,7 @@
             updateAllLabels();
 
             const matchData = {
-                playerAName: pA,
-                playerBName: pB,
-                opponentName,
-                matchDate,
+                playerAName: pA, playerBName: pB, opponentName, matchDate,
                 createdAt: new Date().toISOString()
             };
 
@@ -680,21 +727,17 @@
                 const docRef = await window.addDoc(window.matchesCollection, matchData);
                 currentMatchId = docRef.id;
                 currentMatchData = { id: docRef.id, ...matchData, playerNames };
-                rallyCounter = 1;
-                setNumber = 1;
-                allActions = [];
-                currentRallyId = null;
-                actionInRally = 0;
-                isViewingHistorical = false;
+                rallyCounter = 1; setNumber = 1; allActions = [];
+                currentRallyId = null; actionInRally = 0; isViewingHistorical = false;
 
-                selectSetUI(1);
-                saveCurrentMatchToLocal();
+                selectSetUI(1); saveCurrentMatchToLocal();
                 document.getElementById('currentMatchDisplay').textContent = `${pA}/${pB} vs ${opponentName}`;
                 showLoggingInterface();
                 document.getElementById('continuationBanner').style.display = 'none';
                 document.getElementById('logCardTitle').textContent = 'Log Rally';
                 document.getElementById('logButton').textContent = 'Log Action';
                 document.getElementById('digDetails').style.display = 'none';
+                resetServeErrorToggle();
                 renderRecentRallies();
                 showToast('Match started! 🏐');
             } catch (e) {
@@ -706,12 +749,8 @@
         function saveCurrentMatchToLocal() {
             if (!currentMatchId) return;
             localStorage.setItem('currentMatch', JSON.stringify({
-                ...currentMatchData,
-                rallyCounter,
-                setNumber,
-                playerNames,
-                currentRallyId,
-                actionInRally
+                ...currentMatchData, rallyCounter, setNumber, playerNames,
+                currentRallyId, actionInRally
             }));
         }
 
@@ -720,65 +759,39 @@
                 if (!confirm('A rally is in progress. End it and save the match?')) return;
             }
             if (!confirm('End this match and save all data?')) return;
-
-            currentMatchId = null;
-            currentMatchData = null;
-            allActions = [];
-            rallyCounter = 1;
-            setNumber = 1;
-            currentRallyId = null;
-            actionInRally = 0;
-            isViewingHistorical = false;
-            playerNames = { A: 'A', B: 'B' };
+            currentMatchId = null; currentMatchData = null; allActions = [];
+            rallyCounter = 1; setNumber = 1; currentRallyId = null; actionInRally = 0;
+            isViewingHistorical = false; playerNames = { A: 'A', B: 'B' };
             localStorage.removeItem('currentMatch');
             document.getElementById('currentMatchDisplay').textContent = 'No match set';
             hideLoggingInterface();
-            selectSetUI(1);
-            updateAllLabels();
-            showToast('Match saved! ✅');
-            loadMatches();
+            selectSetUI(1); updateAllLabels();
+            showToast('Match saved! ✅'); loadMatches();
         }
 
         // ═══════════════════ RESUME MATCH ═══════════════════
         async function resumeMatch(matchId) {
             try {
-                // Get match data directly by querying all matches and finding the right one
                 const allMatchesSnap = await window.getDocs(window.collection(window.db, 'matches'));
                 let md = null;
-                allMatchesSnap.forEach(d => {
-                    if (d.id === matchId) md = { id: d.id, ...d.data() };
-                });
-
-                if (!md) {
-                    showToast('Match not found in database');
-                    return;
-                }
-
-                // End current match if active
-                if (currentMatchId) {
-                    localStorage.removeItem('currentMatch');
-                }
+                allMatchesSnap.forEach(d => { if (d.id === matchId) md = { id: d.id, ...d.data() }; });
+                if (!md) { showToast('Match not found in database'); return; }
+                if (currentMatchId) { localStorage.removeItem('currentMatch'); }
 
                 playerNames = { A: md.playerAName || 'A', B: md.playerBName || 'B' };
-                currentMatchId = matchId;
-                currentMatchData = { ...md, playerNames };
-                currentRallyId = null;
-                actionInRally = 0;
-                isViewingHistorical = false;
-                updateAllLabels();
-                selectSetUI(setNumber);
-
+                currentMatchId = matchId; currentMatchData = { ...md, playerNames };
+                currentRallyId = null; actionInRally = 0; isViewingHistorical = false;
+                updateAllLabels(); selectSetUI(setNumber);
                 document.getElementById('currentMatchDisplay').textContent = `${playerNames.A}/${playerNames.B} vs ${md.opponentName || 'Opp'}`;
                 showLoggingInterface();
                 document.getElementById('continuationBanner').style.display = 'none';
                 document.getElementById('logCardTitle').textContent = 'Log Rally';
                 document.getElementById('logButton').textContent = 'Log Action';
                 document.getElementById('digDetails').style.display = 'none';
-
+                resetServeErrorToggle();
                 await loadActionsForCurrentMatch();
                 saveCurrentMatchToLocal();
-                showToast('Resumed match! 🏐');
-                switchTab('log');
+                showToast('Resumed match! 🏐'); switchTab('log');
             } catch (e) {
                 console.error('Resume match error:', e);
                 showToast('Error resuming match: ' + e.message);
@@ -788,54 +801,37 @@
         async function loadActionsForCurrentMatch() {
             if (!currentMatchId) return;
             try {
-                const q = window.query(
-                    window.actionsCollection,
+                const q = window.query(window.actionsCollection,
                     window.where('matchId', '==', currentMatchId),
-                    window.orderBy('timestamp', 'asc')
-                );
+                    window.orderBy('timestamp', 'asc'));
                 const qs = await window.getDocs(q);
                 allActions = [];
                 qs.forEach(d => allActions.push({ id: d.id, ...d.data() }));
                 if (allActions.length > 0) {
-                    const rallyNumbers = allActions.map(a => a.rallyNumber || 0);
-                    rallyCounter = Math.max(...rallyNumbers) + 1;
-                } else {
-                    rallyCounter = 1;
-                }
-                saveCurrentMatchToLocal();
-                renderRecentRallies();
-            } catch (e) {
-                console.error('Load actions error:', e);
-            }
+                    rallyCounter = Math.max(...allActions.map(a => a.rallyNumber || 0)) + 1;
+                } else { rallyCounter = 1; }
+                saveCurrentMatchToLocal(); renderRecentRallies();
+            } catch (e) { console.error('Load actions error:', e); }
         }
 
         // ═══════════════════ VIEW HISTORICAL MATCH STATS ═══════════════════
         async function viewMatchStats(matchId, pA, pB) {
             try {
-                const q = window.query(
-                    window.actionsCollection,
+                const q = window.query(window.actionsCollection,
                     window.where('matchId', '==', matchId),
-                    window.orderBy('timestamp', 'asc')
-                );
+                    window.orderBy('timestamp', 'asc'));
                 const qs = await window.getDocs(q);
                 const actions = [];
                 qs.forEach(d => actions.push({ id: d.id, ...d.data() }));
-
                 isViewingHistorical = true;
-                historicalActions = allActions;
-                historicalNames = { ...playerNames };
+                historicalActions = allActions; historicalNames = { ...playerNames };
                 allActions = actions;
                 playerNames = { A: pA || 'A', B: pB || 'B' };
-
-                switchTab('stats');
-                refreshStats();
+                switchTab('stats'); refreshStats();
                 showToast(`Viewing historical stats — ${actions.length} actions`);
-
-                // Auto-revert after 30 seconds
                 setTimeout(() => {
                     if (isViewingHistorical) {
-                        allActions = historicalActions;
-                        playerNames = historicalNames;
+                        allActions = historicalActions; playerNames = historicalNames;
                         isViewingHistorical = false;
                         showToast('Returned to current match stats');
                     }
@@ -853,100 +849,100 @@
                 (o === 'DUG' || o === 'D-ERR' || o === 'BLK-C') ? 'block' : 'none';
         }
 
-        function isRallyEnding(o) {
-            return ['KNT', 'KT', 'BLK', 'OUT', 'NET', 'D-ERR'].includes(o);
-        }
+        function isRallyEnding(o) { return ['KNT','KT','BLK','OUT','NET','D-ERR'].includes(o); }
 
         async function logAction() {
-            if (!currentMatchId) {
-                showToast('Start a match first!');
-                return;
+            if (!currentMatchId) { showToast('Start a match first!'); return; }
+
+            const isServeError = document.getElementById('serveError').checked;
+            let outcome, attacker, fromZone, shotType, direction,
+                setQuality, setHeight, setDepth, setLateral,
+                recQuality, digBy, digQuality, pointWonBy;
+
+            if (isServeError) {
+                outcome = document.getElementById('serveErrorType').value;
+                pointWonBy = document.getElementById('serveErrorPointTo').value;
+                attacker = null; fromZone = null; shotType = null; direction = null;
+                setQuality = null; setHeight = null; setDepth = null; setLateral = null;
+                recQuality = null; digBy = null; digQuality = null;
+            } else {
+                outcome = document.getElementById('outcome').value;
+                pointWonBy = document.getElementById('pointWonBy').value;
+                attacker = document.getElementById('attacker').value;
+                fromZone = document.getElementById('fromZone').value;
+                shotType = document.getElementById('shotType').value;
+                direction = document.getElementById('direction').value;
+                setQuality = document.getElementById('setQuality').value;
+                setHeight = document.getElementById('setHeight').value;
+                setDepth = document.getElementById('setDepth').value;
+                setLateral = document.getElementById('setLateral').value;
+                recQuality = document.getElementById('recQuality').value || null;
+                digBy = (outcome === 'DUG' || outcome === 'D-ERR' || outcome === 'BLK-C') ?
+                    document.getElementById('digBy').value : null;
+                digQuality = (outcome === 'DUG' || outcome === 'D-ERR' || outcome === 'BLK-C') ?
+                    document.getElementById('digQuality').value : null;
             }
 
-            const outcome = document.getElementById('outcome').value;
-
             const action = {
-                matchId: currentMatchId,
-                rallyId: currentRallyId,
-                actionNumber: actionInRally + 1,
-                setNumber,
-                rallyNumber: rallyCounter,
+                matchId: currentMatchId, rallyId: currentRallyId,
+                actionNumber: actionInRally + 1, setNumber, rallyNumber: rallyCounter,
                 server: document.getElementById('server').value,
                 serveType: document.getElementById('serveType').value,
                 serveStrength: document.getElementById('serveStrength').value,
                 serveFrom: document.getElementById('serveFrom').value,
                 serveZone: document.getElementById('serveZone').value,
-                recQuality: document.getElementById('recQuality').value || null,
-                setQuality: document.getElementById('setQuality').value,
-                setHeight: document.getElementById('setHeight').value,
-                setDepth: document.getElementById('setDepth').value,
-                setLateral: document.getElementById('setLateral').value,
-                attacker: document.getElementById('attacker').value,
-                fromZone: document.getElementById('fromZone').value,
-                shotType: document.getElementById('shotType').value,
-                direction: document.getElementById('direction').value,
-                outcome,
-                digBy: (outcome === 'DUG' || outcome === 'D-ERR' || outcome === 'BLK-C') ?
-                    document.getElementById('digBy').value : null,
-                digQuality: (outcome === 'DUG' || outcome === 'D-ERR' || outcome === 'BLK-C') ?
-                    document.getElementById('digQuality').value : null,
-                pointWonBy: document.getElementById('pointWonBy').value,
+                isServeError, recQuality,
+                setQuality, setHeight, setDepth, setLateral,
+                attacker, fromZone, shotType, direction, outcome,
+                digBy, digQuality, pointWonBy,
                 note: document.getElementById('note').value || '',
-                isRallyEnd: isRallyEnding(outcome),
+                isRallyEnd: isServeError || isRallyEnding(outcome),
                 timestamp: new Date().toISOString()
             };
 
             try {
                 const docRef = await window.addDoc(window.actionsCollection, action);
                 action.id = docRef.id;
-                if (!currentRallyId) {
-                    currentRallyId = docRef.id;
-                    action.rallyId = currentRallyId;
-                }
+                if (!currentRallyId) { currentRallyId = docRef.id; action.rallyId = currentRallyId; }
             } catch (e) {
                 console.error('Save action error:', e);
                 action.id = 'local-' + Date.now();
-                if (!currentRallyId) {
-                    currentRallyId = action.id;
-                    action.rallyId = currentRallyId;
-                }
+                if (!currentRallyId) { currentRallyId = action.id; action.rallyId = currentRallyId; }
             }
 
-            allActions.push(action);
-            actionInRally++;
+            allActions.push(action); actionInRally++;
 
-            if (isRallyEnding(outcome)) {
-                // Rally over
-                currentRallyId = null;
-                actionInRally = 0;
-                rallyCounter++;
+            if (action.isRallyEnd) {
+                currentRallyId = null; actionInRally = 0; rallyCounter++;
                 document.getElementById('continuationBanner').style.display = 'none';
                 document.getElementById('logCardTitle').textContent = 'Log Rally';
                 document.getElementById('logButton').textContent = 'Log Action';
-                // Auto-set server for next rally (point winner serves)
-                const nextServer = action.pointWonBy === 'Opp' ? 'Opp' :
-                    (action.pointWonBy === 'A' ? 'A' : 'B');
-                document.getElementById('server').value = nextServer;
+                document.getElementById('server').value = pointWonBy === 'Opp' ? 'Opp' : (pointWonBy === 'A' ? 'A' : 'B');
                 document.getElementById('recQuality').value = '';
                 document.getElementById('digDetails').style.display = 'none';
                 document.getElementById('note').value = '';
+                resetServeErrorToggle();
             } else {
-                // Rally continues
                 showContinuationBanner();
-                document.getElementById('server').value = action.pointWonBy;
+                document.getElementById('server').value = pointWonBy;
                 document.getElementById('recQuality').value = '';
+                // Hide serve error toggle for continuation actions
+                document.getElementById('serveError').checked = false;
+                document.getElementById('serveErrorDetails').style.display = 'none';
+                document.getElementById('receiveGroup').style.display = 'block';
+                document.getElementById('setGroup').style.display = 'block';
+                document.getElementById('attackGroup').style.display = 'block';
+                document.getElementById('resultRow').style.display = 'block';
             }
 
-            saveCurrentMatchToLocal();
-            renderRecentRallies();
-            showToast(outcome === 'DUG' ? 'Dug! Rally continues 🔄' : 'Action logged ✅');
+            saveCurrentMatchToLocal(); renderRecentRallies();
+            showToast(isServeError ? 'Serve error logged 🚫' :
+                (outcome === 'DUG' ? 'Dug! Rally continues 🔄' : 'Action logged ✅'));
         }
 
         function finishRallyEarly() {
             if (!confirm('End this rally now? The point winner will be whoever is selected in "Point Won By".')) return;
-            currentRallyId = null;
-            actionInRally = 0;
-            rallyCounter++;
+            currentRallyId = null; actionInRally = 0; rallyCounter++;
             document.getElementById('continuationBanner').style.display = 'none';
             document.getElementById('logCardTitle').textContent = 'Log Rally';
             document.getElementById('logButton').textContent = 'Log Action';
@@ -955,87 +951,75 @@
             document.getElementById('recQuality').value = '';
             document.getElementById('digDetails').style.display = 'none';
             document.getElementById('note').value = '';
-            saveCurrentMatchToLocal();
-            showToast('Rally ended early ✕');
+            resetServeErrorToggle();
+            saveCurrentMatchToLocal(); showToast('Rally ended early ✕');
         }
 
         function newRally() {
             if (currentRallyId && actionInRally > 0) {
                 if (!confirm('A rally is in progress. Start a new one anyway?')) return;
             }
-            currentRallyId = null;
-            actionInRally = 0;
+            currentRallyId = null; actionInRally = 0;
             document.getElementById('continuationBanner').style.display = 'none';
             document.getElementById('logCardTitle').textContent = 'Log Rally';
             document.getElementById('logButton').textContent = 'Log Action';
             document.getElementById('digDetails').style.display = 'none';
             document.getElementById('note').value = '';
-            saveCurrentMatchToLocal();
-            showToast('Starting new rally ➕');
+            resetServeErrorToggle();
+            saveCurrentMatchToLocal(); showToast('Starting new rally ➕');
         }
 
         async function undoLast() {
             if (allActions.length === 0) return;
-            const last = allActions.pop();
-            actionInRally--;
-
+            const last = allActions.pop(); actionInRally--;
             if (actionInRally <= 0) {
-                currentRallyId = null;
-                actionInRally = 0;
+                currentRallyId = null; actionInRally = 0;
                 rallyCounter = Math.max(1, rallyCounter - 1);
                 document.getElementById('continuationBanner').style.display = 'none';
                 document.getElementById('logCardTitle').textContent = 'Log Rally';
                 document.getElementById('logButton').textContent = 'Log Action';
                 document.getElementById('digDetails').style.display = 'none';
+                resetServeErrorToggle();
             }
-
             if (last.id && !last.id.startsWith('local-')) {
-                try {
-                    await window.deleteDoc(window.doc(window.db, 'actions', last.id));
-                } catch (e) {
-                    console.error('Delete error:', e);
-                }
+                try { await window.deleteDoc(window.doc(window.db, 'actions', last.id)); } catch (e) {}
             }
-
-            saveCurrentMatchToLocal();
-            renderRecentRallies();
-            showToast('Last action undone ↩');
+            saveCurrentMatchToLocal(); renderRecentRallies(); showToast('Last action undone ↩');
         }
 
         // ═══════════════════ RENDER RECENT RALLIES ═══════════════════
         function renderRecentRallies() {
             const container = document.getElementById('recentRallies');
-            const countEl = document.getElementById('rallyCount');
-            const completedRallies = allActions.filter(a => a.isRallyEnd).length;
-            countEl.textContent = `(${allActions.length} actions, ${completedRallies} completed rallies)`;
-
+            document.getElementById('rallyCount').textContent =
+                `(${allActions.length} actions, ${allActions.filter(a => a.isRallyEnd).length} completed rallies)`;
             if (allActions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No rallies logged yet</div>';
-                return;
+                container.innerHTML = '<div class="empty-state">No rallies logged yet</div>'; return;
             }
-
-            // Group actions by rallyId
             const grouped = {};
             allActions.forEach(a => {
                 const key = a.rallyId || a.id;
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(a);
+                if (!grouped[key]) grouped[key] = []; grouped[key].push(a);
             });
-
             const groups = Object.values(grouped).slice(-10).reverse();
-
             container.innerHTML = groups.map(actions => {
-                const first = actions[0];
-                const lastAction = actions[actions.length - 1];
+                const first = actions[0], lastAction = actions[actions.length - 1];
                 const pwbName = lastAction.pointWonBy === 'A' ? playerNames.A :
                     (lastAction.pointWonBy === 'B' ? playerNames.B : 'Opp');
-
                 return `<div class="rally-group">
                     <div class="rally-group-header">
                         <span>Set ${first.setNumber} · Rally #${first.rallyNumber}</span>
                         <span style="font-size:0.68rem;color:var(--accent);">→ ${pwbName} point</span>
                     </div>
                     ${actions.map((a, i) => {
+                        if (a.isServeError) {
+                            const errLabel = a.outcome === 'OUT' ? 'Serve Out' : 'Serve Into Net';
+                            const serverName = a.server === 'A' ? playerNames.A : (a.server === 'B' ? playerNames.B : 'Opp');
+                            return `<div class="action-row">
+                                <span class="action-number">${a.actionNumber}</span>
+                                <span class="rally-badge badge-serve-error">${errLabel}</span>
+                                <span class="action-info"><strong>${serverName}</strong> serving · ${serveTypeDisplay[a.serveType] || a.serveType} · ${strengthDisplay[a.serveStrength] || a.serveStrength}</span>
+                            </div>`;
+                        }
                         const oc = getOutcomeClass(a.outcome);
                         const attName = attackerName(a.attacker);
                         const setInfo = `<span class="set-detail">Set: ${setQualityDisplay[a.setQuality] || a.setQuality} ${setHeightDisplay[a.setHeight] || a.setHeight} ${setDepthDisplay[a.setDepth] || a.setDepth} · ${setLateralDisplay[a.setLateral] || a.setLateral}</span>`;
@@ -1047,11 +1031,7 @@
                         return `<div class="action-row">
                             <span class="action-number">${a.actionNumber}</span>
                             <span class="rally-badge ${oc}">${outcomeDisplay[a.outcome] || a.outcome}</span>
-                            <span class="action-info">
-                                <strong>${attName}</strong> ${zoneDisplay[a.fromZone] || a.fromZone} · ${shotDisplay[a.shotType] || a.shotType} · ${dirDisplay[a.direction] || a.direction}
-                                ${setInfo} ${digInfo}
-                                ${a.note ? `<br><span class="action-meta">📝 ${a.note}</span>` : ''}
-                            </span>
+                            <span class="action-info"><strong>${attName}</strong> ${zoneDisplay[a.fromZone] || a.fromZone} · ${shotDisplay[a.shotType] || a.shotType} · ${dirDisplay[a.direction] || a.direction} ${setInfo} ${digInfo} ${a.note ? `<br><span class="action-meta">📝 ${a.note}</span>` : ''}</span>
                         </div>`;
                     }).join('')}
                 </div>`;
@@ -1073,7 +1053,7 @@
             const fd = document.getElementById('filterDirection')?.value || 'All';
             const fset = document.getElementById('filterSet')?.value || 'All';
 
-            let attacks = [...allActions].filter(a => a.attacker);
+            let attacks = [...allActions].filter(a => a.attacker && !a.isServeError);
             let serves = [...allActions];
             if (fp !== 'All') {
                 attacks = attacks.filter(a => a.attacker === fp);
@@ -1096,9 +1076,12 @@
             const ep = total > 0 ? ((errors / total) * 100).toFixed(1) : '0';
             const bp = total > 0 ? ((blocks / total) * 100).toFixed(1) : '0';
 
+            // Serve errors
+            const serveErrors = serves.filter(a => a.isServeError).length;
+            const totalServes = serves.length;
+
             let html = '';
 
-            // Historical banner
             if (isViewingHistorical) {
                 html += `<div class="continuation-banner" style="margin-bottom:10px;">
                     <div><div class="banner-text">📊 Viewing Historical Match Stats</div>
@@ -1118,35 +1101,30 @@
                 <div class="stats-grid" style="margin-top:4px;">
                     <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total Attacks</div></div>
                     <div class="stat-card"><div class="stat-value">${dug}</div><div class="stat-label">Dug</div></div>
-                    <div class="stat-card"><div class="stat-value">${kp}%</div><div class="stat-label">Kill %</div></div>
+                    <div class="stat-card"><div class="stat-value">${serveErrors}/${totalServes}</div><div class="stat-label">Serve Errors</div></div>
                 </div></div>`;
 
             if (total === 0) {
                 html += '<div class="empty-state"><div class="icon">📊</div>No attack data for this filter. Log some actions first.</div>';
             } else {
-                // Outcome by Set Quality
                 html += `<div class="stats-section"><div class="stats-section-title">Attack Outcome by Set Quality</div>`;
                 html += buildOutcomeTable(attacks, 'setQuality', setQualityDisplay, ['1', '2', '3']);
                 html += `</div>`;
 
-                // Outcome by Set Height & Depth
                 html += `<div class="stats-section"><div class="stats-section-title">Attack Outcome by Set Height & Depth</div>
                     <div class="form-row">`;
                 html += `<div>${buildOutcomeTable(attacks, 'setHeight', setHeightDisplay, ['H', 'L'])}</div>`;
                 html += `<div>${buildOutcomeTable(attacks, 'setDepth', setDepthDisplay, ['T', 'S', 'O'])}</div>`;
                 html += `</div></div>`;
 
-                // Outcome by Direction
                 html += `<div class="stats-section"><div class="stats-section-title">Attack Outcome by Direction</div>`;
                 html += buildOutcomeTable(attacks, 'direction', dirDisplay, ['L', 'LC', 'S', 'C', 'CS', 'JB']);
                 html += `</div>`;
 
-                // Outcome by Attack Zone
                 html += `<div class="stats-section"><div class="stats-section-title">Attack Outcome by Zone</div>`;
                 html += buildOutcomeTable(attacks, 'fromZone', zoneDisplay, ['1L', '1C', '1R', '2L', '2C', '2R', '3L', '3C', '3R']);
                 html += `</div>`;
 
-                // Attack by Receive Quality
                 const attacksWithRec = attacks.filter(a => a.recQuality !== null && a.recQuality !== '');
                 if (attacksWithRec.length > 0) {
                     html += `<div class="stats-section"><div class="stats-section-title">Attack Outcome by Receive Quality</div>`;
@@ -1213,13 +1191,13 @@
         function buildServeTable(serves, fp) {
             if (serves.length === 0) return '<div class="empty-state">No serve data</div>';
             const servers = fp === 'All' ? ['A', 'B', 'Opp'] : [fp];
-            let html = `<table class="mini-table"><tr><th>Server</th><th>Total</th><th>Aces</th><th>Errors</th><th>Avg Str</th><th>Most Used Zone</th></tr>`;
+            let html = `<table class="mini-table"><tr><th>Server</th><th>Total</th><th>Aces</th><th>Serve Errors</th><th>Avg Str</th><th>Most Used Zone</th></tr>`;
             servers.forEach(s => {
                 const ss = serves.filter(a => a.server === s);
                 if (ss.length === 0) return;
                 const name = s === 'A' ? playerNames.A : (s === 'B' ? playerNames.B : 'Opponent');
-                const aces = ss.filter(a => a.recQuality === '0' && a.pointWonBy === s).length;
-                const errs = ss.filter(a => a.outcome === 'OUT' || a.outcome === 'NET' || (a.recQuality === '0' && a.pointWonBy !== s)).length;
+                const aces = ss.filter(a => !a.isServeError && a.recQuality === '0' && a.pointWonBy === s).length;
+                const errs = ss.filter(a => a.isServeError).length;
                 const avgStr = (ss.reduce((sum, a) => sum + parseInt(a.serveStrength || 2), 0) / ss.length).toFixed(1);
                 const zoneMap = {};
                 ss.forEach(a => { const z = a.serveZone; if (z) zoneMap[z] = (zoneMap[z] || 0) + 1; });
@@ -1235,10 +1213,8 @@
         }
 
         function exitHistoricalView() {
-            allActions = historicalActions;
-            playerNames = historicalNames;
-            isViewingHistorical = false;
-            refreshStats();
+            allActions = historicalActions; playerNames = historicalNames;
+            isViewingHistorical = false; refreshStats();
             showToast('Returned to current match');
         }
 
@@ -1246,10 +1222,8 @@
         async function loadMatches() {
             try {
                 const qs = await window.getDocs(window.query(window.matchesCollection, window.orderBy('createdAt', 'desc')));
-                const matches = [];
-                qs.forEach(d => matches.push({ id: d.id, ...d.data() }));
-                renderMatchList(matches);
-                renderExistingMatches(matches);
+                const matches = []; qs.forEach(d => matches.push({ id: d.id, ...d.data() }));
+                renderMatchList(matches); renderExistingMatches(matches);
             } catch (e) {
                 console.error('Load matches error:', e);
                 document.getElementById('matchList').innerHTML = '<div class="empty-state">⚠️ Could not load matches. Check your Firebase config and connection.</div>';
@@ -1258,17 +1232,11 @@
 
         function renderMatchList(matches) {
             const c = document.getElementById('matchList');
-            if (matches.length === 0) {
-                c.innerHTML = '<div class="empty-state"><div class="icon">📋</div>No saved matches yet</div>';
-                return;
-            }
+            if (matches.length === 0) { c.innerHTML = '<div class="empty-state"><div class="icon">📋</div>No saved matches yet</div>'; return; }
             c.innerHTML = matches.map(m => `
                 <div class="card" style="margin:5px 0;padding:9px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-                        <div>
-                            <strong>${m.playerAName || 'A'}/${m.playerBName || 'B'}</strong> vs ${m.opponentName || 'Opp'}<br>
-                            <span style="font-size:0.68rem;color:var(--subtext);">${m.matchDate || 'Unknown date'}</span>
-                        </div>
+                        <div><strong>${m.playerAName || 'A'}/${m.playerBName || 'B'}</strong> vs ${m.opponentName || 'Opp'}<br><span style="font-size:0.68rem;color:var(--subtext);">${m.matchDate || 'Unknown date'}</span></div>
                         <div style="display:flex;gap:4px;">
                             <button class="btn btn-outline btn-xs" onclick="resumeMatch('${m.id}')">Resume</button>
                             <button class="btn btn-outline btn-xs" onclick="viewMatchStats('${m.id}','${m.playerAName || 'A'}','${m.playerBName || 'B'}')">Stats</button>
@@ -1279,14 +1247,9 @@
 
         function renderExistingMatches(matches) {
             const c = document.getElementById('existingMatches');
-            if (matches.length === 0) {
-                c.innerHTML = '<p style="font-size:0.75rem;color:var(--subtext);">No past matches found.</p>';
-                return;
-            }
+            if (matches.length === 0) { c.innerHTML = '<p style="font-size:0.75rem;color:var(--subtext);">No past matches found.</p>'; return; }
             c.innerHTML = '<p style="font-size:0.7rem;color:var(--subtext);margin-bottom:3px;">Click a match to resume it:</p>' +
-                matches.slice(0, 10).map(m =>
-                    `<span class="match-chip" onclick="resumeMatch('${m.id}')">${m.playerAName || 'A'}/${m.playerBName || 'B'} vs ${m.opponentName || 'Opp'}</span>`
-                ).join('');
+                matches.slice(0, 10).map(m => `<span class="match-chip" onclick="resumeMatch('${m.id}')">${m.playerAName || 'A'}/${m.playerBName || 'B'} vs ${m.opponentName || 'Opp'}</span>`).join('');
         }
 
         async function deleteAllData() {
@@ -1297,25 +1260,13 @@
                 for (const d of as.docs) await window.deleteDoc(window.doc(window.db, 'actions', d.id));
                 const ms = await window.getDocs(window.matchesCollection);
                 for (const d of ms.docs) await window.deleteDoc(window.doc(window.db, 'matches', d.id));
-                allActions = [];
-                rallyCounter = 1;
-                currentMatchId = null;
-                currentMatchData = null;
-                currentRallyId = null;
-                actionInRally = 0;
-                isViewingHistorical = false;
-                playerNames = { A: 'A', B: 'B' };
-                localStorage.removeItem('currentMatch');
+                allActions = []; rallyCounter = 1; currentMatchId = null; currentMatchData = null;
+                currentRallyId = null; actionInRally = 0; isViewingHistorical = false;
+                playerNames = { A: 'A', B: 'B' }; localStorage.removeItem('currentMatch');
                 document.getElementById('currentMatchDisplay').textContent = 'No match set';
-                hideLoggingInterface();
-                updateAllLabels();
-                selectSetUI(1);
-                loadMatches();
+                hideLoggingInterface(); updateAllLabels(); selectSetUI(1); loadMatches();
                 showToast('All data deleted');
-            } catch (e) {
-                console.error('Delete all error:', e);
-                showToast('Error: ' + e.message);
-            }
+            } catch (e) { console.error('Delete all error:', e); showToast('Error: ' + e.message); }
         }
 
         // ═══════════════════ UI HELPERS ═══════════════════
@@ -1324,9 +1275,7 @@
             document.querySelectorAll('[id^="tab-"]').forEach(d => d.style.display = 'none');
             const tabMap = { log: 0, stats: 1, history: 2, matches: 3 };
             const tabIndex = tabMap[tabName];
-            if (tabIndex !== undefined) {
-                document.querySelectorAll('.tab')[tabIndex].classList.add('active');
-            }
+            if (tabIndex !== undefined) document.querySelectorAll('.tab')[tabIndex].classList.add('active');
             document.getElementById('tab-' + tabName).style.display = 'block';
             if (tabName === 'stats') refreshStats();
             if (tabName === 'history' || tabName === 'matches') loadMatches();
@@ -1334,25 +1283,13 @@
 
         function showToast(msg) {
             const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
+            t.textContent = msg; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2500);
         }
 
-        // Debug helper - logs state to console
         function debugState() {
-            console.log({
-                currentMatchId,
-                rallyCounter,
-                setNumber,
-                currentRallyId,
-                actionInRally,
-                actionsCount: allActions.length,
-                isViewingHistorical,
-                playerNames
-            });
+            console.log({ currentMatchId, rallyCounter, setNumber, currentRallyId, actionInRally, actionsCount: allActions.length, isViewingHistorical, playerNames });
         }
-        // Expose for console use
         window.debugState = debugState;
     </script>
 
